@@ -59,26 +59,28 @@ export function ProjectDetail({
 
   function toggleStatus(task: Task) {
     const next: TaskStatus = task.status === "done" ? "todo" : "done";
-    // Optimistic update happens synchronously first
-    dispatch({ type: "toggle", id: task.id, status: next });
     startTransition(async () => {
+      dispatch({ type: "toggle", id: task.id, status: next });
       await fetch(`/api/tasks/${task.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
       });
+      // Refresh to sync server data
+      router.refresh();
     });
   }
 
   function moveTask(taskId: string, newStatus: TaskStatus) {
-    // Optimistic update happens synchronously first
-    dispatch({ type: "toggle", id: taskId, status: newStatus });
     startTransition(async () => {
+      dispatch({ type: "toggle", id: taskId, status: newStatus });
       await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
+      // Refresh to sync server data
+      router.refresh();
     });
   }
 

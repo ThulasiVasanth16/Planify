@@ -90,6 +90,8 @@ export function TaskBoard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
       });
+      // Refresh to sync server data
+      router.refresh();
     });
   }
 
@@ -210,7 +212,7 @@ function TaskCard({
             {task.priority}
           </span>
           {task.project_name && (
-            <span className='rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground truncate max-w-[120px]'>
+            <span className='rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground truncate max-w-30'>
               {task.project_name}
             </span>
           )}
