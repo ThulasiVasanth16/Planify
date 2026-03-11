@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useTransition, useEffect, useCallback } from "react";
+import { useOptimistic, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Circle, Trash2 } from "lucide-react";
@@ -73,10 +73,10 @@ export function TaskBoard({
   // Register the addTask callback with the global provider
   useEffect(() => {
     const unsubscribe = registerOnSuccess((task) => {
-      // Update optimistic state immediately
-      dispatch({ type: "add", task: task as unknown as Task });
-      // Delay refresh to let optimistic update show first
-      setTimeout(() => router.refresh(), 100);
+      startTransition(async () => {
+        dispatch({ type: "add", task: task as unknown as Task });
+        router.refresh();
+      });
     });
     return unsubscribe;
   }, [registerOnSuccess, dispatch, router]);

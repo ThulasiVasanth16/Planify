@@ -4,6 +4,9 @@ import { getTasksFiltered } from "@/lib/tasks";
 import { getProjectsWithProgress } from "@/lib/projects";
 import { TaskBoard } from "./_components/task-board";
 
+// Disable caching to ensure fresh data on every request
+export const revalidate = 0;
+
 interface TasksPageProps {
   searchParams: Promise<{
     priority?: string;
@@ -21,8 +24,8 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   const [tasks, projects] = await Promise.all([
     getTasksFiltered(userId, {
       priority: params.priority ?? null,
-      project:  params.project  ?? null,
-      sort:     params.sort     ?? null,
+      project: params.project ?? null,
+      sort: params.sort ?? null,
     }),
     getProjectsWithProgress(userId),
   ]);
@@ -30,10 +33,10 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className='flex h-full flex-col gap-4'>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Tasks</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className='text-2xl font-bold tracking-tight'>My Tasks</h1>
+        <p className='text-sm text-muted-foreground'>
           {tasks.length} task{tasks.length !== 1 ? "s" : ""}
           {params.priority ? ` · ${params.priority} priority` : ""}
           {params.project ? " · filtered by project" : ""}
