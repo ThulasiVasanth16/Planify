@@ -73,12 +73,13 @@ export function TaskBoard({
   // Register the addTask callback with the global provider
   useEffect(() => {
     const unsubscribe = registerOnSuccess((task) => {
-      startTransition(() => {
-        dispatch({ type: "add", task: task as unknown as Task });
-      });
+      // Update optimistic state immediately
+      dispatch({ type: "add", task: task as unknown as Task });
+      // Delay refresh to let optimistic update show first
+      setTimeout(() => router.refresh(), 100);
     });
     return unsubscribe;
-  }, [registerOnSuccess, dispatch]);
+  }, [registerOnSuccess, dispatch, router]);
 
   function toggleStatus(task: Task) {
     const next: TaskStatus = task.status === "done" ? "todo" : "done";
@@ -103,7 +104,8 @@ export function TaskBoard({
   function addTask(task: Task) {
     startTransition(async () => {
       dispatch({ type: "add", task });
-      router.refresh();
+      // Delay refresh to let optimistic update show first
+      setTimeout(() => router.refresh(), 100);
     });
   }
 

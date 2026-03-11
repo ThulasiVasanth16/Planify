@@ -12,18 +12,20 @@ export default async function WorkspaceSettingsPage() {
   if (!workspace) redirect("/onboarding");
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your account and workspace preferences.</p>
+        <h1 className='text-2xl font-bold tracking-tight'>Settings</h1>
+        <p className='text-sm text-muted-foreground'>
+          Manage your account and workspace preferences.
+        </p>
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 border-b border-border pb-1">
+      <div className='flex gap-1 border-b border-border pb-1 overflow-x-auto'>
         {[
-          { label: "Profile",   href: "/settings/profile",   active: false },
-          { label: "Workspace", href: "/settings/workspace",  active: true  },
+          { label: "Profile", href: "/settings/profile", active: false },
+          { label: "Workspace", href: "/settings/workspace", active: true },
         ].map(({ label, href, active }) => (
           <Link
             key={href}

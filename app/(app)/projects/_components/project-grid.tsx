@@ -72,15 +72,19 @@ export function ProjectGrid({ initialProjects }: ProjectGridProps) {
 
       {/* Grid */}
       {projects.length === 0 ? (
-        <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center'>
-          <FolderKanban className='mb-3 h-10 w-10 text-muted-foreground/50' />
+        <div className='flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-12 md:py-24 text-center px-4'>
+          <FolderKanban className='mb-3 h-8 w-8 md:h-10 md:w-10 text-muted-foreground/50' />
           <p className='font-medium'>No projects yet</p>
           <p className='mt-1 text-sm text-muted-foreground'>
             Projects will appear here once created.
           </p>
+          <Button onClick={() => setModalOpen(true)} className='mt-4' size='sm'>
+            <Plus className='mr-1 h-4 w-4' />
+            New Project
+          </Button>
         </div>
       ) : (
-        <div className='grid gap-4 '>
+        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           {projects.map((project) => (
             <ProjectCard
               key={project.id}

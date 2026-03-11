@@ -81,9 +81,9 @@ export function TeamWorkspace({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className='flex h-full gap-6 overflow-hidden'>
-      {/* ── Left: Member list ── */}
-      <aside className='flex w-64 shrink-0 flex-col gap-4 overflow-y-auto'>
+    <div className='flex h-full gap-4 lg:gap-6 overflow-hidden flex-col lg:flex-row'>
+      {/* ── Left: Member list (hidden on mobile, shown in drawer or above) ── */}
+      <aside className='flex w-full lg:w-64 shrink-0 flex-col gap-4 overflow-y-auto lg:overflow-hidden'>
         <div className='flex flex-col gap-[inherit] rounded-xl border border-border bg-card p-4'>
           <div className='flex items-center justify-between'>
             <h2 className='font-semibold'>Members</h2>

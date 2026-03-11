@@ -21,7 +21,7 @@ export default async function AppLayout({
         <Sidebar />
         <div className='flex flex-1 flex-col overflow-hidden'>
           <AppHeader title='Planify' />
-          <main className='flex-1 overflow-y-auto bg-background p-6'>
+          <main className='flex-1 overflow-y-auto overflow-x-hidden bg-background p-4 lg:p-6'>
             {children}
           </main>
         </div>

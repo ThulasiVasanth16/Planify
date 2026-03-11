@@ -1,11 +1,9 @@
 "use client";
 
-import { useOptimistic, useTransition, useCallback, useEffect } from "react";
+import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, LayoutGrid, List, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useCreateTask } from "@/components/providers/create-task-provider";
+import { ChevronRight, LayoutGrid, List } from "lucide-react";
 import { KanbanView } from "./kanban-view";
 import { ListView } from "./list-view";
 import { cn } from "@/lib/utils";
@@ -42,34 +40,11 @@ export function ProjectDetail({
   view,
 }: ProjectDetailProps) {
   const router = useRouter();
-  const { open, registerOnSuccess } = useCreateTask();
   const [, startTransition] = useTransition();
   const [tasks, dispatch] = useOptimistic<Task[], OptimisticTaskAction>(
     initialTasks,
     applyAction,
   );
-
-  // Register callback to handle task creation from global header button
-  useEffect(() => {
-    const unsubscribe = registerOnSuccess((task) => {
-      // Only add task if it belongs to this project
-      if (task.project_id === project.id) {
-        startTransition(() => {
-          dispatch({
-            type: "add",
-            task: {
-              ...task,
-              user_id: "",
-              status: task.status as TaskStatus,
-              priority: task.priority as TaskPriority,
-            } as unknown as Task,
-          });
-          router.refresh();
-        });
-      }
-    });
-    return unsubscribe;
-  }, [registerOnSuccess, project.id, dispatch, router]);
 
   const inProgress = tasks.filter(
     (t) => t.status === "in_progress" || t.status === "in_review",
@@ -84,8 +59,9 @@ export function ProjectDetail({
 
   function toggleStatus(task: Task) {
     const next: TaskStatus = task.status === "done" ? "todo" : "done";
+    // Optimistic update happens synchronously first
+    dispatch({ type: "toggle", id: task.id, status: next });
     startTransition(async () => {
-      dispatch({ type: "toggle", id: task.id, status: next });
       await fetch(`/api/tasks/${task.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -95,8 +71,9 @@ export function ProjectDetail({
   }
 
   function moveTask(taskId: string, newStatus: TaskStatus) {
+    // Optimistic update happens synchronously first
+    dispatch({ type: "toggle", id: taskId, status: newStatus });
     startTransition(async () => {
-      dispatch({ type: "toggle", id: taskId, status: newStatus });
       await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -113,36 +90,32 @@ export function ProjectDetail({
     });
   }
 
-  const handleAddTask = useCallback(
-    (task: {
-      id: string;
-      title: string;
-      status: string;
-      priority: string;
-      project_id: string | null;
-      project_name: string | null;
-      description: string | null;
-      notes: string | null;
-      assignee_id: string | null;
-      due_date: string | null;
-      created_at: string;
-    }) => {
-      // Use startTransition to properly handle optimistic updates
-      startTransition(async () => {
-        dispatch({
-          type: "add",
-          task: {
-            ...task,
-            user_id: "",
-            status: task.status as TaskStatus,
-            priority: task.priority as TaskPriority,
-          } as unknown as Task,
-        });
-        router.refresh();
+  function handleAddTask(task: {
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    project_id: string | null;
+    project_name: string | null;
+    description: string | null;
+    notes: string | null;
+    assignee_id: string | null;
+    due_date: string | null;
+    created_at: string;
+  }) {
+    startTransition(async () => {
+      dispatch({
+        type: "add",
+        task: {
+          ...task,
+          user_id: "",
+          status: task.status as TaskStatus,
+          priority: task.priority as TaskPriority,
+        } as unknown as Task,
       });
-    },
-    [dispatch, router],
-  );
+      router.refresh();
+    });
+  }
 
   return (
     <div className='flex h-full flex-col gap-4'>
@@ -243,8 +216,10 @@ export function ProjectDetail({
         ) : (
           <ListView
             tasks={tasks}
+            projectId={project.id}
             onToggle={toggleStatus}
             onDelete={deleteTask}
+            onAdd={handleAddTask}
           />
         )}
       </div>
