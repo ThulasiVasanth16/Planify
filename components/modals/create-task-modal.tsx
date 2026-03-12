@@ -120,7 +120,7 @@ export function CreateTaskModal({
       setMode("quick");
       setTimeout(() => titleRef.current?.focus(), 50);
     }
-  }, [isOpen, defaultStatus]);
+  }, [isOpen, defaultStatus, defaultProjectId]);
 
   // Close on Escape
   useEffect(() => {
