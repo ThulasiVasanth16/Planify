@@ -20,14 +20,36 @@ import { Button } from "@/components/ui/button";
 import { CreateProjectModal } from "@/components/modals/create-project-modal";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/projects";
+import { useCreateTask } from "@/components/providers/create-task-provider";
 
 type OptimisticAction =
   | { type: "add"; project: Project }
-  | { type: "remove"; id: string };
+  | { type: "remove"; id: string }
+  | {
+      type: "updateTaskCount";
+      projectId: string;
+      total: number;
+      completed: number;
+      pct: number;
+    };
 
 function applyAction(projects: Project[], action: OptimisticAction): Project[] {
   if (action.type === "add") return [action.project, ...projects];
-  return projects.filter((p) => p.id !== action.id);
+  if (action.type === "remove")
+    return projects.filter((p) => p.id !== action.id);
+  if (action.type === "updateTaskCount") {
+    return projects.map((p) =>
+      p.id === action.projectId
+        ? {
+            ...p,
+            total_tasks: action.total,
+            completed_tasks: action.completed,
+            completion_pct: action.pct,
+          }
+        : p,
+    );
+  }
+  return projects;
 }
 
 interface ProjectGridProps {
@@ -42,6 +64,51 @@ export function ProjectGrid({ initialProjects }: ProjectGridProps) {
     applyAction,
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const { registerOnSuccess } = useCreateTask();
+
+  // Use ref to track projects for the callback
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
+
+  // Subscribe to task creation events to update project counts
+  useEffect(() => {
+    const unsubscribe = registerOnSuccess((task) => {
+      if (!task.project_id) return;
+
+      // Store project_id after null check for TypeScript
+      const projectId = task.project_id;
+
+      // Use ref to get latest projects
+      const currentProjects = projectsRef.current;
+      const project = currentProjects.find((p) => p.id === projectId);
+      if (!project) return;
+
+      // Calculate new task counts
+      const newTotal = project.total_tasks + 1;
+      const newCompleted =
+        project.completed_tasks + (task.status === "done" ? 1 : 0);
+      const newPct =
+        newTotal > 0 ? Math.round((newCompleted / newTotal) * 100) : 0;
+
+      // Update optimistic state
+      startTransition(() => {
+        dispatch({
+          type: "updateTaskCount",
+          projectId,
+          total: newTotal,
+          completed: newCompleted,
+          pct: newPct,
+        });
+      });
+
+      // Trigger router refresh after a short delay
+      setTimeout(() => {
+        router.refresh();
+      }, 20);
+    });
+
+    return unsubscribe;
+  }, [registerOnSuccess, dispatch, router]);
 
   function handleCreate(project: Project) {
     startTransition(() => {
