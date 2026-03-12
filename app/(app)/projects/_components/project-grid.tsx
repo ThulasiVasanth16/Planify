@@ -247,7 +247,7 @@ function ProjectCard({
             </button>
 
             {menuOpen && (
-              <div className='absolute right-0 top-7 z-20 min-w-[160px] rounded-lg border border-border bg-card shadow-lg'>
+              <div className='absolute right-0 top-7 z-20 min-w-40 rounded-lg border border-border bg-card shadow-lg'>
                 {!confirmDelete ? (
                   <>
                     <button
