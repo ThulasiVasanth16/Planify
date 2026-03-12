@@ -1,32 +1,40 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { updateTaskStatus, updateTask, deleteTask } from "@/lib/tasks";
 import type { TaskStatus, TaskPriority } from "@/lib/tasks";
 
-const VALID_STATUSES: TaskStatus[] = ["todo", "in_progress", "in_review", "done"];
+const VALID_STATUSES: TaskStatus[] = [
+  "todo",
+  "in_progress",
+  "in_review",
+  "done",
+];
 const VALID_PRIORITIES: TaskPriority[] = ["low", "medium", "high"];
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
   // Full update (from Task Detail page): body contains title, status, priority, etc.
   if (body.title !== undefined) {
-    const { title, description, notes, status, priority, projectId, dueDate } = body as {
-      title: string;
-      description?: string | null;
-      notes?: string | null;
-      status?: string;
-      priority?: string;
-      projectId?: string | null;
-      dueDate?: string | null;
-    };
+    const { title, description, notes, status, priority, projectId, dueDate } =
+      body as {
+        title: string;
+        description?: string | null;
+        notes?: string | null;
+        status?: string;
+        priority?: string;
+        projectId?: string | null;
+        dueDate?: string | null;
+      };
 
     if (!title?.trim()) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -48,11 +56,24 @@ export async function PATCH(
         projectId: projectId ?? null,
         dueDate: dueDate ?? null,
       });
-      if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      if (!task)
+        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+      // Revalidate pages that display tasks
+      revalidatePath("/tasks");
+      revalidatePath("/projects");
+      revalidatePath("/dashboard");
+      if (projectId) {
+        revalidatePath(`/projects/${projectId}`);
+      }
+
       return NextResponse.json(task);
     } catch (err) {
       console.error(`PATCH /api/tasks/${id} (full)`, err);
-      return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to update task" },
+        { status: 500 },
+      );
     }
   }
 
@@ -61,35 +82,56 @@ export async function PATCH(
   if (!status || !VALID_STATUSES.includes(status as TaskStatus)) {
     return NextResponse.json(
       { error: `status must be one of: ${VALID_STATUSES.join(", ")}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
     const updated = await updateTaskStatus(id, userId, status);
-    if (!updated) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    if (!updated)
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+    // Revalidate pages that display tasks
+    revalidatePath("/tasks");
+    revalidatePath("/projects");
+    revalidatePath("/dashboard");
+
     return NextResponse.json({ id, status });
   } catch (err) {
     console.error(`PATCH /api/tasks/${id} (status)`, err);
-    return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update task" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
 
   try {
     const deleted = await deleteTask(id, userId);
-    if (!deleted) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    if (!deleted)
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+    // Revalidate pages that display tasks
+    revalidatePath("/tasks");
+    revalidatePath("/projects");
+    revalidatePath("/dashboard");
+
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     console.error(`DELETE /api/tasks/${id}`, err);
-    return NextResponse.json({ error: "Failed to delete task" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete task" },
+      { status: 500 },
+    );
   }
 }

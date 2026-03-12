@@ -1,16 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getTasksFiltered, createTask } from "@/lib/tasks";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = req.nextUrl;
   const filters = {
     priority: searchParams.get("priority"),
-    project:  searchParams.get("project"),
-    sort:     searchParams.get("sort"),
+    project: searchParams.get("project"),
+    sort: searchParams.get("sort"),
   };
 
   try {
@@ -18,13 +20,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(tasks);
   } catch (err) {
     console.error("GET /api/tasks", err);
-    return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch tasks" },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
   const { title, status, priority, projectId, dueDate } = body as {
@@ -43,14 +49,27 @@ export async function POST(req: NextRequest) {
     const task = await createTask({
       userId,
       title: title.trim(),
-      status: (status as "todo" | "in_progress" | "in_review" | "done") ?? "todo",
+      status:
+        (status as "todo" | "in_progress" | "in_review" | "done") ?? "todo",
       priority: (priority as "low" | "medium" | "high") ?? "medium",
       projectId: projectId ?? null,
       dueDate: dueDate ?? null,
     });
+
+    // Revalidate pages that display tasks so the new task appears immediately
+    revalidatePath("/tasks");
+    revalidatePath("/projects");
+    revalidatePath("/dashboard");
+    if (projectId) {
+      revalidatePath(`/projects/${projectId}`);
+    }
+
     return NextResponse.json(task, { status: 201 });
   } catch (err) {
     console.error("POST /api/tasks", err);
-    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create task" },
+      { status: 500 },
+    );
   }
 }

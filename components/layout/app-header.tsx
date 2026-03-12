@@ -24,7 +24,7 @@ export function AppHeader({ title }: AppHeaderProps) {
           <Plus className='h-4 w-4' />
           <span className='hidden sm:inline'>New Task</span>
         </Button>
-        <div className='shrink-0 w-[34px] h-[34px] flex items-center justify-center'>
+        <div className='shrink-0 w-8.5 h-8.5 flex items-center justify-center'>
           {isLoaded ? (
             <UserButton />
           ) : (

@@ -4,6 +4,7 @@ import { useState, useRef, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Task, TaskStatus } from "@/lib/tasks";
+import { createTaskAction } from "../actions";
 
 interface QuickAddProps {
   status: TaskStatus;
@@ -35,14 +36,18 @@ export function QuickAdd({ status, projectId, onAdd }: QuickAddProps) {
     }
 
     startTransition(async () => {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, status, projectId: projectId ?? null }),
-      });
-      if (res.ok) {
-        const task = await res.json();
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("status", status);
+      if (projectId) {
+        formData.append("projectId", projectId);
+      }
+
+      try {
+        const task = await createTaskAction(formData);
         onAdd(task);
+      } catch (error) {
+        console.error("Failed to create task:", error);
       }
       reset();
     });

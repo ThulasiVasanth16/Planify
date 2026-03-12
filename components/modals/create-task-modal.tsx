@@ -6,6 +6,7 @@ import { X, Zap, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TaskStatus, TaskPriority } from "@/lib/tasks";
+import { createTaskAction } from "@/app/(app)/tasks/actions";
 
 // Date validation helper
 function isValidDate(dateStr: string): { valid: boolean; error?: string } {
@@ -149,28 +150,21 @@ export function CreateTaskModal({
     setLoading(true);
 
     try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          priority,
-          dueDate: dueDate || null,
-          status: mode === "detailed" ? status : "todo",
-          projectId: mode === "detailed" && projectId ? projectId : null,
-          description: mode === "detailed" && description ? description : null,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(
-          (data as { error?: string }).error ?? "Failed to create task.",
-        );
-        return;
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("priority", priority);
+      formData.append("status", mode === "detailed" ? status : "todo");
+      if (mode === "detailed" && projectId) {
+        formData.append("projectId", projectId);
+      }
+      if (dueDate) {
+        formData.append("dueDate", dueDate);
+      }
+      if (mode === "detailed" && description) {
+        formData.append("description", description);
       }
 
-      const task = await res.json();
+      const task = await createTaskAction(formData);
 
       // Call the onSuccess callback passed via open() options
       if (onSuccess) {
@@ -189,6 +183,8 @@ export function CreateTaskModal({
       if (!onSuccess && !getAllCallbacks) {
         router.refresh();
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create task.");
     } finally {
       setLoading(false);
     }
