@@ -154,7 +154,7 @@ export function CreateTaskModal({
       formData.append("title", title.trim());
       formData.append("priority", priority);
       formData.append("status", mode === "detailed" ? status : "todo");
-      if (mode === "detailed" && projectId) {
+      if (projectId) {
         formData.append("projectId", projectId);
       }
       if (dueDate) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, LayoutGrid, List } from "lucide-react";
@@ -9,6 +9,7 @@ import { ListView } from "./list-view";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/projects";
 import type { Task, TaskStatus, TaskPriority } from "@/lib/tasks";
+import { useCreateTask } from "@/components/providers/create-task-provider";
 
 interface ProjectDetailProps {
   project: Project;
@@ -45,6 +46,29 @@ export function ProjectDetail({
     initialTasks,
     applyAction,
   );
+  const { registerOnSuccess } = useCreateTask();
+
+  // Register callback to update task list when a task is created from this project
+  useEffect(() => {
+    const unsubscribe = registerOnSuccess((task) => {
+      // Only add task if it belongs to this project
+      if (task.project_id === project.id) {
+        startTransition(() => {
+          dispatch({
+            type: "add",
+            task: {
+              ...task,
+              user_id: "",
+              status: task.status as TaskStatus,
+              priority: task.priority as TaskPriority,
+            } as unknown as Task,
+          });
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [registerOnSuccess, project.id, dispatch]);
 
   const inProgress = tasks.filter(
     (t) => t.status === "in_progress" || t.status === "in_review",
