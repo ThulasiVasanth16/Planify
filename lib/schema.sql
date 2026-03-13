@@ -74,6 +74,20 @@ CREATE TABLE IF NOT EXISTS team_members (
 
 CREATE INDEX IF NOT EXISTS team_members_workspace_id_idx ON team_members (workspace_id);
 
+-- ── Project Members ─────────────────────────────────────────────────────────
+-- Allows team members to access specific projects
+
+CREATE TABLE IF NOT EXISTS project_members (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id   UUID        NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  member_id    UUID        NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(project_id, member_id)
+);
+
+CREATE INDEX IF NOT EXISTS project_members_project_id_idx ON project_members (project_id);
+CREATE INDEX IF NOT EXISTS project_members_member_id_idx ON project_members (member_id);
+
 -- ── Workspace settings columns (safe to re-run) ────────────────────────────
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS theme                    TEXT    NOT NULL DEFAULT 'system';  -- 'light' | 'dark' | 'system'
 ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS email_digest            TEXT    NOT NULL DEFAULT 'weekly';  -- 'daily' | 'weekly' | 'off'
