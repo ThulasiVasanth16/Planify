@@ -35,7 +35,22 @@ export type AnalyticsSummary = {
 
 export async function getAnalyticsSummary(
   userId: string,
+  currentDate?: Date,
+  _timeZone?: string,
 ): Promise<AnalyticsSummary> {
+  // Use provided date or default to now (local time)
+  const now = currentDate ? new Date(currentDate) : new Date();
+
+  // Use local time consistently - this matches what the client displays
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDayOfMonth = new Date(year, month, 1);
+  const firstDayOfNextMonth = new Date(year, month + 1, 1);
+
+  // Activity heatmap date range - use parameters to match client's timezone
+  const monthStart = firstDayOfMonth.toISOString();
+  const monthEnd = firstDayOfNextMonth.toISOString();
+
   const [statsRow, weeklyRows, heatmapRows, projectRows, streakRow] =
     await Promise.all([
       // Overall stats + this/last week
@@ -77,12 +92,13 @@ export async function getAnalyticsSummary(
     `,
 
       // Activity heatmap — current calendar month
+      // Use parameters to match client's timezone
       sql`
       SELECT created_at::date AS date, COUNT(*) AS count
       FROM tasks
       WHERE user_id = ${userId}
-        AND created_at >= date_trunc('month', CURRENT_DATE)
-        AND created_at <  date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+        AND created_at >= ${monthStart}::timestamptz
+        AND created_at <  ${monthEnd}::timestamptz
       GROUP BY 1
       ORDER BY 1
     `,
@@ -130,7 +146,7 @@ export async function getAnalyticsSummary(
   const stats = statsRow[0] ?? {};
   const streakVal = streakRow[0] ?? {};
 
-  return {
+  const result: AnalyticsSummary = {
     streak: Number(streakVal.streak ?? 0),
     completionRate: Math.round(Number(stats.completion_rate ?? 0)),
     tasksThisWeek: Number(stats.this_week ?? 0),
@@ -162,9 +178,32 @@ export async function getAnalyticsSummary(
       completion_pct: Number(r.completion_pct),
     })),
 
-    heatmap: heatmapRows.map((r) => ({
-      date: String(r.date).slice(0, 10),
-      count: Number(r.count),
-    })),
+    heatmap: heatmapRows.map((r) => {
+      // Parse the date string properly - convert UTC to local timezone
+      const rawDate = r.date;
+      let dateStr: string;
+
+      if (rawDate instanceof Date) {
+        // Handle Date objects from PostgreSQL - convert to local date string
+        dateStr = rawDate.toLocaleDateString("en-CA");
+      } else if (typeof rawDate === "string") {
+        // Handle ISO strings - parse and convert to local date
+        const parsed = new Date(rawDate);
+        if (!isNaN(parsed.getTime())) {
+          dateStr = parsed.toLocaleDateString("en-CA");
+        } else {
+          dateStr = rawDate.slice(0, 10);
+        }
+      } else {
+        dateStr = String(rawDate).slice(0, 10);
+      }
+
+      return {
+        date: dateStr,
+        count: Number(r.count),
+      };
+    }),
   };
+
+  return result;
 }

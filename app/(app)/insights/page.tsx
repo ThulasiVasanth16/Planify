@@ -7,7 +7,12 @@ export default async function InsightsPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const summary = await getAnalyticsSummary(userId);
+  // Pass the current date to ensure server uses the same date as client
+  const summary = await getAnalyticsSummary(
+    userId,
+    new Date(),
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
 
   return <InsightsDashboard summary={summary} />;
 }

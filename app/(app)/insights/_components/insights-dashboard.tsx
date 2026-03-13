@@ -243,7 +243,7 @@ function BarChart({
 
   return (
     <div className='overflow-x-auto'>
-      <div className='min-w-[400px]'>
+      <div className='min-w-100'>
         <svg width='100%' height={chartH + 40} className='overflow-visible'>
           {data.map((d, i) => {
             const barW = 28;
@@ -384,13 +384,18 @@ function ActivityHeatmap({
       {/* Legend */}
       <div className='mt-3 flex items-center gap-1.5'>
         <span className='text-[10px] text-muted-foreground'>Less</span>
-        {[0, 0.2, 0.4, 0.7, 1].map((v) => (
+        {/* No activity (gray) */}
+        <div
+          className='h-3 w-3 rounded-sm'
+          style={{ backgroundColor: "var(--muted)" }}
+        />
+        {/* Purple gradient from 0.15 to 1.0 */}
+        {[0.3, 0.5, 0.75, 1].map((v) => (
           <div
             key={v}
             className='h-3 w-3 rounded-sm'
             style={{
-              backgroundColor:
-                v === 0 ? "var(--muted)" : `rgba(99, 102, 241, ${v})`,
+              backgroundColor: `rgba(99, 102, 241, ${v})`,
             }}
           />
         ))}
