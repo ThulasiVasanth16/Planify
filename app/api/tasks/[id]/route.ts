@@ -63,6 +63,7 @@ export async function PATCH(
       revalidatePath("/tasks");
       revalidatePath("/projects");
       revalidatePath("/dashboard");
+      revalidatePath("/team");
       if (projectId) {
         revalidatePath(`/projects/${projectId}`);
       }

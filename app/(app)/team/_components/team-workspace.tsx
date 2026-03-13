@@ -51,6 +51,7 @@ export function TeamWorkspace({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [localMembers, setLocalMembers] = useState<TeamMember[]>(members);
+  const [localTasks, setLocalTasks] = useState<TeamTask[]>(initialTasks);
   const [inviteOpen, setInviteOpen] = useState(false);
 
   function setAssigneeFilter(userId: string | null) {
@@ -68,14 +69,43 @@ export function TeamWorkspace({
     memberId: string,
     newRole: "admin" | "member",
   ) {
-    await fetch(`/api/team/${memberId}`, {
+    const res = await fetch(`/api/team/${memberId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: newRole }),
     });
-    setLocalMembers((prev) =>
-      prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
+
+    if (res.ok) {
+      setLocalMembers((prev) =>
+        prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
+      );
+      startTransition(() => router.refresh());
+    }
+  }
+
+  async function handleTaskComplete(taskId: string, currentStatus: string) {
+    const newStatus = currentStatus === "done" ? "todo" : "done";
+
+    // Optimistic update - update local state immediately
+    setLocalTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
     );
+
+    const res = await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+
+    if (!res.ok) {
+      // Revert on error
+      setLocalTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, status: currentStatus } : t,
+        ),
+      );
+      startTransition(() => router.refresh());
+    }
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -169,7 +199,7 @@ export function TeamWorkspace({
         {/* Task table */}
         <div className='flex-1 overflow-auto rounded-xl border border-border bg-card'>
           <table className='w-full'>
-            <thead className='border-b border-border bg-muted/50 text-xs uppercase text-muted-foreground'>
+            <thead className='border-b border-border bg-background text-xs uppercase text-muted-foreground sticky top-0 z-10'>
               <tr>
                 <th className='px-4 py-3 text-left font-medium'>Task</th>
                 <th className='px-4 py-3 text-left font-medium'>Status</th>
@@ -178,7 +208,7 @@ export function TeamWorkspace({
               </tr>
             </thead>
             <tbody className='text-sm'>
-              {initialTasks.map((task) => {
+              {localTasks.map((task) => {
                 const isOverdue =
                   task.due_date &&
                   task.status !== "completed" &&
@@ -193,14 +223,28 @@ export function TeamWorkspace({
                   >
                     <td className='px-4 py-3'>
                       <div className='flex items-center gap-2'>
-                        {task.status === "completed" ? (
-                          <CheckCircle2 className='h-4 w-4 text-green-500' />
+                        {task.status === "done" ? (
+                          <button
+                            onClick={() =>
+                              handleTaskComplete(task.id, task.status)
+                            }
+                            className='flex items-center justify-center'
+                          >
+                            <CheckCircle2 className='h-4 w-4 text-green-500 hover:text-green-600 cursor-pointer' />
+                          </button>
                         ) : (
-                          <div className='h-4 w-4 rounded-full border-2 border-muted-foreground/30' />
+                          <button
+                            onClick={() =>
+                              handleTaskComplete(task.id, task.status)
+                            }
+                            className='flex items-center justify-center'
+                          >
+                            <div className='h-4 w-4 rounded-full border-2 border-muted-foreground/30 hover:border-green-500 cursor-pointer' />
+                          </button>
                         )}
                         <span
                           className={cn(
-                            task.status === "completed" &&
+                            task.status === "done" &&
                               "line-through text-muted-foreground",
                           )}
                         >
@@ -210,17 +254,17 @@ export function TeamWorkspace({
                     </td>
                     <td className='px-4 py-3'>
                       <Badge
-                        variant={
-                          task.status === "completed"
-                            ? "default"
-                            : task.status === "in_progress"
-                              ? "secondary"
-                              : "outline"
-                        }
+                        variant='secondary'
                         className={cn(
-                          "capitalize",
-                          task.status === "completed" &&
-                            "bg-green-500 hover:bg-green-600",
+                          "capitalize text-[10px] px-2 py-0.5 min-w-17.5 justify-center inline-flex",
+                          task.status === "done" &&
+                            "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+                          task.status === "in_progress" &&
+                            "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
+                          task.status === "in_review" &&
+                            "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+                          task.status === "todo" &&
+                            "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
                         )}
                       >
                         {task.status.replace("_", " ")}
@@ -394,7 +438,7 @@ function MemberRow({
               <MoreHorizontal className='h-3.5 w-3.5' />
             </button>
             {menuOpen && (
-              <div className='absolute right-0 top-6 z-20 min-w-[140px] rounded-lg border border-border bg-card shadow-lg'>
+              <div className='absolute right-0 top-6 z-20 min-w-35 rounded-lg border border-border bg-card shadow-lg'>
                 {onRoleChange && (
                   <button
                     onClick={() => {
