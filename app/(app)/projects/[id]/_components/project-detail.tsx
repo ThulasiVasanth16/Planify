@@ -1,11 +1,12 @@
 "use client";
 
-import { useOptimistic, useTransition, useEffect } from "react";
+import { useOptimistic, useTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, LayoutGrid, List } from "lucide-react";
+import { ChevronRight, LayoutGrid, List, Users } from "lucide-react";
 import { KanbanView } from "./kanban-view";
 import { ListView } from "./list-view";
+import { ProjectMembersModal } from "@/components/modals/ProjectMembersModal";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/projects";
 import type { Task, TaskStatus, TaskPriority } from "@/lib/tasks";
@@ -47,6 +48,7 @@ export function ProjectDetail({
     applyAction,
   );
   const { registerOnSuccess } = useCreateTask();
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
 
   // Register callback to update task list when a task is created from this project
   useEffect(() => {
@@ -167,6 +169,14 @@ export function ProjectDetail({
 
         {/* Actions */}
         <div className='flex items-center gap-2'>
+          {/* Members button */}
+          <button
+            onClick={() => setMembersModalOpen(true)}
+            className='flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors'
+          >
+            <Users className='h-3.5 w-3.5' /> Members
+          </button>
+
           {/* View toggle */}
           <div className='flex rounded-md border border-border'>
             <button
@@ -249,6 +259,13 @@ export function ProjectDetail({
           />
         )}
       </div>
+
+      {/* Members Modal */}
+      <ProjectMembersModal
+        projectId={project.id}
+        isOpen={membersModalOpen}
+        onClose={() => setMembersModalOpen(false)}
+      />
     </div>
   );
 }

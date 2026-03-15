@@ -8,6 +8,7 @@ import {
   useCallback,
 } from "react";
 import { CreateTaskModal } from "@/components/modals/create-task-modal";
+import { TeamMember } from "@/lib/team";
 
 interface OpenOptions {
   status?: string;
@@ -44,11 +45,13 @@ export function useCreateTask() {
 interface CreateTaskProviderProps {
   children: React.ReactNode;
   projects: { id: string; name: string }[];
+  teamMembers: TeamMember[];
 }
 
 export function CreateTaskProvider({
   children,
   projects,
+  teamMembers,
 }: CreateTaskProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<string>("todo");
@@ -97,6 +100,7 @@ export function CreateTaskProvider({
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         projects={projects}
+        teamMembers={teamMembers}
         defaultStatus={defaultStatus}
         defaultProjectId={defaultProjectId}
         onSuccess={onSuccess}

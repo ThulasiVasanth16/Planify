@@ -3,17 +3,45 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { Button } from "@/components/ui/button";
 import { Zap, ArrowRight } from "lucide-react";
-import { getWorkspaceByUserId } from "@/lib/workspace";
+import { getWorkspaceByUserId, getUserEmail } from "@/lib/workspace";
+import { sql } from "@/lib/db";
+
+/** Check if user has a pending invitation to any workspace */
+async function checkPendingInvitation(userId: string): Promise<boolean> {
+  const email = await getUserEmail(userId);
+  console.log("[checkPendingInvitation] UserId:", userId, "Email:", email);
+
+  if (!email) return false;
+
+  // Check by email (case-insensitive)
+  const [invitation] = await sql`
+    SELECT id FROM team_members
+    WHERE LOWER(email) = LOWER(${email}) AND status = 'pending' AND user_id IS NULL
+    LIMIT 1
+  `;
+
+  console.log("[checkPendingInvitation] Found invitation:", !!invitation);
+  return !!invitation;
+}
 
 export default async function OnboardingWelcomePage() {
   const { userId } = await auth();
 
   // If user is already logged in and has a workspace, redirect to dashboard
   if (userId) {
+    // First check if they own a workspace
     const workspace = await getWorkspaceByUserId(userId);
     if (workspace) {
       redirect("/dashboard");
     }
+
+    // Check if they have a pending invitation
+    const hasInvitation = await checkPendingInvitation(userId);
+    if (hasInvitation) {
+      // They have an invitation - redirect to workspace form to accept it
+      redirect("/onboarding/workspace");
+    }
+
     // If no workspace, continue to show onboarding page
   }
 

@@ -39,6 +39,7 @@ interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projects: { id: string; name: string }[];
+  teamMembers?: { id: string; display_name: string }[];
   defaultStatus?: string;
   defaultProjectId?: string;
   onSuccess?: (task: {
@@ -88,6 +89,7 @@ export function CreateTaskModal({
   isOpen,
   onClose,
   projects,
+  teamMembers = [],
   defaultStatus = "todo",
   defaultProjectId = "",
   onSuccess,
@@ -103,6 +105,7 @@ export function CreateTaskModal({
   const [dueDateError, setDueDateError] = useState<string | null>(null);
   const [status, setStatus] = useState<TaskStatus>(defaultStatus as TaskStatus);
   const [projectId, setProjectId] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,6 +118,7 @@ export function CreateTaskModal({
       setDueDate("");
       setStatus(defaultStatus as TaskStatus);
       setProjectId(defaultProjectId);
+      setAssigneeId("");
       setDescription("");
       setError(null);
       setMode("quick");
@@ -162,6 +166,9 @@ export function CreateTaskModal({
       }
       if (mode === "detailed" && description) {
         formData.append("description", description);
+      }
+      if (assigneeId) {
+        formData.append("assigneeId", assigneeId);
       }
 
       const task = await createTaskAction(formData);
@@ -350,6 +357,27 @@ export function CreateTaskModal({
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Assignee dropdown */}
+                {teamMembers.length > 0 && (
+                  <div>
+                    <label className='mb-1 block text-xs font-medium text-muted-foreground'>
+                      Assign to
+                    </label>
+                    <select
+                      value={assigneeId}
+                      onChange={(e) => setAssigneeId(e.target.value)}
+                      className='w-full rounded-md border border-input bg-background px-2.5 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring'
+                    >
+                      <option value=''>Unassigned</option>
+                      {teamMembers.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.display_name}
                         </option>
                       ))}
                     </select>

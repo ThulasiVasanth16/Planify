@@ -18,6 +18,7 @@ export async function createTaskAction(formData: FormData) {
   const projectId = formData.get("projectId") as string | null;
   const dueDate = formData.get("dueDate") as string | null;
   const description = formData.get("description") as string | null;
+  const assigneeId = formData.get("assigneeId") as string | null;
 
   if (!title?.trim()) {
     throw new Error("Title is required");
@@ -30,6 +31,8 @@ export async function createTaskAction(formData: FormData) {
     priority,
     projectId: projectId || null,
     dueDate: dueDate || null,
+    description: description || null,
+    assigneeId: assigneeId || null,
   });
 
   // Revalidate all relevant pages

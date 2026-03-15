@@ -217,6 +217,7 @@ export async function getProjectMembers(projectId: string): Promise<
       WHERE pm.project_id = ${projectId}
       ORDER BY tm.display_name ASC
     `;
+    console.log("[getProjectMembers] Rows:", rows.length);
     return rows as unknown as {
       member_id: string;
       user_id: string;
@@ -224,7 +225,8 @@ export async function getProjectMembers(projectId: string): Promise<
       email: string;
       role: string;
     }[];
-  } catch {
+  } catch (err) {
+    console.error("[getProjectMembers] Error:", err);
     return [];
   }
 }
@@ -243,6 +245,16 @@ export async function getAvailableTeamMembers(
   }[]
 > {
   try {
+    // First, check if team_members table has any data
+    const teamMembersCheck = await sql`
+      SELECT COUNT(*) as count FROM team_members 
+      WHERE workspace_id = ${workspaceId} AND status = 'active'
+    `;
+    console.log(
+      "[getAvailableTeamMembers] Team members count:",
+      teamMembersCheck[0]?.count,
+    );
+
     const rows = await sql`
       SELECT 
         tm.id as member_id, 
@@ -258,6 +270,7 @@ export async function getAvailableTeamMembers(
         )
       ORDER BY tm.display_name ASC
     `;
+    console.log("[getAvailableTeamMembers] Available rows:", rows.length);
     return rows as unknown as {
       member_id: string;
       user_id: string;
@@ -265,7 +278,8 @@ export async function getAvailableTeamMembers(
       email: string;
       role: string;
     }[];
-  } catch {
+  } catch (err) {
+    console.error("[getAvailableTeamMembers] Error:", err);
     return [];
   }
 }

@@ -57,7 +57,9 @@ export async function getPriorityTasks(userId: string): Promise<Task[]> {
 }
 
 /** Aggregated stat counts for the dashboard summary cards. */
-export async function getDashboardStats(userId: string): Promise<DashboardStats> {
+export async function getDashboardStats(
+  userId: string,
+): Promise<DashboardStats> {
   try {
     const [row] = await sql`
       SELECT
@@ -73,14 +75,20 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
       WHERE user_id = ${userId}
     `;
     return {
-      due_today:     Number(row?.due_today     ?? 0),
-      in_progress:   Number(row?.in_progress   ?? 0),
-      completed:     Number(row?.completed     ?? 0),
-      overdue:       Number(row?.overdue       ?? 0),
+      due_today: Number(row?.due_today ?? 0),
+      in_progress: Number(row?.in_progress ?? 0),
+      completed: Number(row?.completed ?? 0),
+      overdue: Number(row?.overdue ?? 0),
       due_this_week: Number(row?.due_this_week ?? 0),
     };
   } catch {
-    return { due_today: 0, in_progress: 0, completed: 0, overdue: 0, due_this_week: 0 };
+    return {
+      due_today: 0,
+      in_progress: 0,
+      completed: 0,
+      overdue: 0,
+      due_this_week: 0,
+    };
   }
 }
 
@@ -90,7 +98,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
  */
 export async function getTasksFiltered(
   userId: string,
-  { priority = null, project = null, sort = "created" }: TaskFilters = {}
+  { priority = null, project = null, sort = "created" }: TaskFilters = {},
 ): Promise<Task[]> {
   try {
     const rows = await sql`
@@ -118,7 +126,10 @@ export async function getTasksFiltered(
 }
 
 /** Single task by ID — verifies ownership via user_id. Returns null if not found. */
-export async function getTaskById(taskId: string, userId: string): Promise<Task | null> {
+export async function getTaskById(
+  taskId: string,
+  userId: string,
+): Promise<Task | null> {
   try {
     const [row] = await sql`
       SELECT
@@ -144,6 +155,8 @@ export async function createTask({
   priority = "medium",
   projectId = null,
   dueDate = null,
+  description = null,
+  assigneeId = null,
 }: {
   userId: string;
   title: string;
@@ -151,12 +164,14 @@ export async function createTask({
   priority?: TaskPriority;
   projectId?: string | null;
   dueDate?: string | null;
+  description?: string | null;
+  assigneeId?: string | null;
 }): Promise<Task> {
   const [row] = await sql`
-    INSERT INTO tasks (user_id, title, status, priority, project_id, due_date)
+    INSERT INTO tasks (user_id, title, status, priority, project_id, due_date, description, assignee_id)
     VALUES (
       ${userId}, ${title}, ${status}, ${priority},
-      ${projectId}::uuid, ${dueDate}::date
+      ${projectId}::uuid, ${dueDate}::date, ${description}, ${assigneeId}
     )
     RETURNING id, user_id, project_id, title, description, notes, assignee_id,
               status, priority, due_date::text, created_at::text
@@ -168,7 +183,7 @@ export async function createTask({
 export async function updateTaskStatus(
   taskId: string,
   userId: string,
-  status: string
+  status: string,
 ): Promise<boolean> {
   const result = await sql`
     UPDATE tasks SET status = ${status}
@@ -192,7 +207,15 @@ export type TaskUpdate = {
 export async function updateTask(
   taskId: string,
   userId: string,
-  { title, description, notes, status, priority, projectId, dueDate }: TaskUpdate
+  {
+    title,
+    description,
+    notes,
+    status,
+    priority,
+    projectId,
+    dueDate,
+  }: TaskUpdate,
 ): Promise<Task | null> {
   const [row] = await sql`
     UPDATE tasks
@@ -212,7 +235,10 @@ export async function updateTask(
 }
 
 /** Delete a task — used by DELETE /api/tasks/:id. */
-export async function deleteTask(taskId: string, userId: string): Promise<boolean> {
+export async function deleteTask(
+  taskId: string,
+  userId: string,
+): Promise<boolean> {
   const result = await sql`
     DELETE FROM tasks WHERE id = ${taskId} AND user_id = ${userId}
     RETURNING id
